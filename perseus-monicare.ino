@@ -1,10 +1,4 @@
-#include <inttypes.h>
-#include <OneWire.h>
-#include <DallasTemperature.h>
-#include "structs.h";
-#include "function_prototypes.h";
-
-device_state_t device_state = device_state_t::stand_by;
+#include "perseus-monicare.h"
 
 void setup (void) 
 {
@@ -22,11 +16,7 @@ void loop (void)
 			break;
 		
 		case device_state_t::showing_menu:
-			show_menu();
-			break;
-		
-		case device_state_t::alarming:
-			alarm();
+			menu();
 			break;
 
 		case device_state_t::getting_body_temperature:
@@ -46,11 +36,24 @@ void loop (void)
 	}
 }
 
-// TODO
+bool user_is_inactive() 
+{
+	if (millis() - last_user_interaction < 10000) {
+		return true;
+	} 
+
+	return false;
+}
+
 void stand_by (void)
 {
-	// turn LCD off
-	// checking o'clock to alarm user
+	lcd.noBacklight();
+	standby_indicator_led_state = true;
+	
+	// TODO
+	// get o'clock from web
+	// if () 
+		// alarm();
 }
 
 // TODO
@@ -60,7 +63,7 @@ void login (void)
 }
 
 // TODO
-void show_menu (void) 
+void menu (void) 
 {
 	// function to show application menu
 }

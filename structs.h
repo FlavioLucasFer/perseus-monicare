@@ -3,7 +3,6 @@ enum class device_state_t
 	stand_by,
 	logging_in,
 	showing_menu,
-	alarming,
 	getting_body_temperature,
 	getting_blood_oxygenation,
 	getting_heart_rate,
