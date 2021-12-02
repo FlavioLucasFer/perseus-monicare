@@ -28,178 +28,300 @@ String APIClient::getRouteString (Routes route)
 	}
 }
 
-DynamicJsonDocument APIClient::getRequest (int capacity, Routes r)
-{
-	WiFiClient wifiClient;
-	DynamicJsonDocument doc(capacity);
-	auto route = this->getServerAddress() + this->getRouteString(r);
-
-	this->http.useHTTP10(true);
-	this->http.begin(wifiClient, route);
-
-	this->http.addHeader("Content-Type", "application/json");
-
-	if (this->patient.token)
-		this->http.addHeader("Authorization", "Bearer" + this->patient.token);
-
-	auto responseCode = this->http.GET();
-
-	if (responseCode <= 0)
-		throw "Unexpected error";
-
-	deserializeJson(doc, this->http.getStream());
-
-	this->http.end();
-
-	return doc;
-}
-
 DynamicJsonDocument APIClient::getRequest (int capacity, String route)
 {
-	WiFiClient wifiClient;
-	DynamicJsonDocument doc(capacity);
+	try {
+		WiFiClient wifiClient;
+		DynamicJsonDocument doc(capacity);
 
-	this->http.useHTTP10(true);
-	this->http.begin(wifiClient, route);
+		this->http.useHTTP10(true);
+		this->http.begin(wifiClient, route);
 
-	this->http.addHeader("Content-Type", "application/json");
+		this->http.addHeader("Content-Type", "application/json");
 
-	if (this->patient.token)
-		this->http.addHeader("Authorization", "Bearer" + this->patient.token);
+		if (this->auth.token)
+			this->http.addHeader("Authorization", "Bearer" + this->auth.token);
 
-	auto responseCode = this->http.GET();
+		uint16_t responseCode = this->http.GET();
 
-	if (responseCode <= 0)
-		throw "Unexpected error";
+		this->requestErrorHandler(responseCode);
 
-	deserializeJson(doc, this->http.getStream());
+		deserializeJson(doc, this->http.getStream());
 
-	this->http.end();
+		this->requestErrorHandler(responseCode, doc);
 
-	return doc;
+		this->http.end();
+
+		return doc;
+	}
+	catch (DynamicJsonDocument e) {
+		throw e;
+	}
+	catch (String &e) {
+		throw e;
+	}
+	catch (const std::exception& e) {
+		throw e;
+	}
 }
 
-DynamicJsonDocument APIClient::postRequest (int capacity, Routes r, String body)
+DynamicJsonDocument APIClient::getRequest (int capacity, Routes route)
 {
-	WiFiClient wifiClient;
-	DynamicJsonDocument doc(capacity);
-	auto route = this->getServerAddress() + this->getRouteString(r);
-
-	this->http.useHTTP10(true);
-	this->http.begin(wifiClient, route);
-
-	this->http.addHeader("Content-Type", "application/json");
-	
-	if (this->patient.token)
-		this->http.addHeader("Authorization", "Bearer" + this->patient.token);
-
-	auto responseCode = this->http.POST(body);
-
-	if (responseCode <= 0)
-		throw "Unexpected error";
-
-	deserializeJson(doc, this->http.getStream());
-
-	this->http.end();
-
-	return doc;
+	try {
+		return this->getRequest(
+			capacity,
+			this->getServerAddress() + this->getRouteString(route)
+		);
+	}
+	catch (DynamicJsonDocument e) {
+		throw e;
+	}
+	catch (String &e) {
+		throw e;
+	}
+	catch (const std::exception& e) {
+		throw e;
+	}
 }
 
 DynamicJsonDocument APIClient::postRequest (int capacity, String route, String body)
 {
-	WiFiClient wifiClient;
-	DynamicJsonDocument doc(capacity);
+	try {
+		WiFiClient wifiClient;
+		DynamicJsonDocument doc(capacity);
 
-	this->http.useHTTP10(true);
-	this->http.begin(wifiClient, route);
+		this->http.useHTTP10(true);
+		this->http.begin(wifiClient, route);
 
-	this->http.addHeader("Content-Type", "application/json");
+		this->http.addHeader("Content-Type", "application/json");
 
-	if (this->patient.token)
-		this->http.addHeader("Authorization", "Bearer" + this->patient.token);
+		if (this->auth.token)
+			this->http.addHeader("Authorization", "Bearer" + this->auth.token);
 
-	auto responseCode = this->http.POST(body);
+		uint16_t responseCode = this->http.POST(body);
 
-	if (responseCode <= 0)
-		throw "Unexpected error";
+		this->requestErrorHandler(responseCode);
 
-	deserializeJson(doc, this->http.getStream());
+		deserializeJson(doc, this->http.getStream());
 
-	this->http.end();
+		this->requestErrorHandler(responseCode, doc);
 
-	return doc;
+		this->http.end();
+
+		return doc;
+	}
+	catch (DynamicJsonDocument e) {
+		throw e;
+	}
+	catch (String &e) {
+		throw e;
+	}
+	catch (const std::exception& e) {
+		throw e;
+	}
 }
 
-DynamicJsonDocument APIClient::getLoggedUser (void)
+DynamicJsonDocument APIClient::postRequest (int capacity, Routes route, String body)
 {
-	return this->postRequest(384, Routes::me, "");
+	try {
+		return this->postRequest(
+			capacity,
+			this->getServerAddress() + this->getRouteString(route),
+			body
+		);
+	}
+	catch (DynamicJsonDocument e) {
+		throw e;
+	}
+	catch (String &e) {
+		throw e;
+	}
+	catch (const std::exception& e) {
+		throw e;
+	}
 }
 
-DynamicJsonDocument APIClient::login (String username, String password)
+JsonObject APIClient::getLoggedPatient (void)
 {
-	StaticJsonDocument<96> doc;
-
-	doc["login"] = username;
-	doc["password"] = password;
-
-	String body;
-
-	serializeJson(doc, body);
-
-	auto responseDoc = this->postRequest(768, Routes::login, body);
-	JsonObject responseData = responseDoc["data"];
-
-	this->patient.token = responseData["accessToken"].as<String>();
-
-	auto loggedUser = this->getLoggedUser();
-
-	JsonObject loggedUserData = loggedUser["data"];
-	JsonObject user = loggedUserData["user"];
-
-	this->patient.id = loggedUserData["id"].as<int>();
-	this->patient.name = user["name"].as<String>();
-
-	return responseDoc;
+	try {
+		this->isPatientLogged();
+		return this->postRequest(384, Routes::me, "")["data"];
+	}
+	catch (DynamicJsonDocument e) {
+		throw e;
+	}
+	catch (String &e) {
+		throw e;
+	}
+	catch (const std::exception &e) {
+		throw e;
+	}
 }
 
-DynamicJsonDocument APIClient::logout (void) 
+uint32_t APIClient::login (String username, String password)
 {
-	auto responseDoc = this->postRequest(128, Routes::logout, "");
+	try {
+		StaticJsonDocument<96> doc;
 
-	this->patient = patient_t();
+		doc["login"] = username;
+		doc["password"] = password;
 
-	return responseDoc;
+		String body;
+
+		serializeJson(doc, body);
+
+		auto responseDoc = this->postRequest(768, Routes::login, body);
+		JsonObject responseData = responseDoc["data"];
+
+		this->auth.token = responseData["accessToken"].as<String>();
+
+		auto loggedPatient = this->getLoggedPatient();
+
+		JsonObject user = loggedPatient["user"];
+
+		this->auth.id = loggedPatient["id"].as<int>();
+
+		this->patient = patient_t(
+			this->auth.id,
+			user["name"].as<String>(),
+			loggedPatient["email"].as<String>(),
+			loggedPatient["phone"].as<String>()
+		);
+
+		return responseDoc["data"]["expiresIn"];
+	}
+	catch (DynamicJsonDocument e) {
+		throw e;
+	}
+	catch (String &e) {
+		throw e;
+	}
+	catch (const std::exception &e) {
+		throw e;
+	}
 }
 
-DynamicJsonDocument APIClient::refreshToken (void) 
+uint32_t APIClient::login (user_t user)
 {
-	auto responseDoc = this->postRequest(768, Routes::refresh_token, "");
-
-	JsonObject responseData = responseDoc["data"];
-	this->patient.token = responseData["accessToken"].as<String>();
-
-	return responseDoc;
+	try {
+		return this->login(user.username, user.password);
+	}
+	catch (DynamicJsonDocument e) {
+		throw e;
+	}
+	catch (String &e) {
+		throw e;
+	}
+	catch (const std::exception &e) {
+		throw e;
+	}
 }
 
-DynamicJsonDocument APIClient::getMeasurementTypes (void)
+void APIClient::logout (void) 
 {
-	return this->getRequest(1024, Routes::measurement_types);
+	try {
+		this->isPatientLogged();
+		auto responseDoc = this->postRequest(128, Routes::logout, "");
+
+		this->auth = auth_t();
+		this->patient = patient_t();
+	}
+	catch (DynamicJsonDocument e) {
+		throw e;
+	}
+	catch (String &e) {
+		throw e;
+	}
+	catch (const std::exception &e) {
+		throw e;
+	}
 }
 
-DynamicJsonDocument APIClient::setMeasurement (float value, String measured_at, int measurement_type_id)
+uint32_t APIClient::refreshToken (void) 
 {
-	StaticJsonDocument<128> doc;
+	try {
+		this->isPatientLogged();
+		auto responseDoc = this->postRequest(768, Routes::refresh_token, "");
 
-	doc["value"] = value;
-	doc["measuredAt"] = measured_at;
-	doc["measurementTypeId"] = measurement_type_id;
+		JsonObject responseData = responseDoc["data"];
+		this->auth.token = responseData["accessToken"].as<String>();
 
-	String body;
+		return responseData["expiresIn"];
+	}
+	catch (DynamicJsonDocument e) {
+		throw e;
+	}
+	catch (String &e) {
+		throw e;
+	}
+	catch (const std::exception &e) {
+		throw e;
+	}
+}
 
-	serializeJson(doc, body);
+JsonArray APIClient::getMeasurementTypes (void)
+{
+	try {
+		this->isPatientLogged();
+		return this->getRequest(1024, Routes::measurement_types)["data"];
+	}
+	catch (DynamicJsonDocument e) {
+		throw e;
+	}
+	catch (String &e) {
+		throw e;
+	}
+	catch (const std::exception &e) {
+		throw e;
+	}
+}
 
-	auto route = this->getServerAddress() + this->getRouteString(Routes::patient_measurement) + "/" + this->patient.id;
-	auto responseDoc = this->postRequest(768, route, body);
+JsonObject APIClient::storeMeasurement (float value, String measured_at, uint8_t measurement_type_id)
+{
+	try {
+		this->isPatientLogged();
+		StaticJsonDocument<128> doc;
 
-	return responseDoc;
+		doc["value"] = value;
+		doc["measuredAt"] = measured_at;
+		doc["measurementTypeId"] = measurement_type_id;
+
+		String body;
+
+		serializeJson(doc, body);
+
+		auto route = this->getServerAddress() + this->getRouteString(Routes::patient_measurement) + "/" + this->auth.id;
+		auto responseDoc = this->postRequest(768, route, body);
+
+		return responseDoc["data"];
+	}
+	catch (DynamicJsonDocument e) {
+		throw e;
+	}
+	catch (String &e) {
+		throw e;
+	}
+	catch (const std::exception &e) {
+		throw e;
+	}
+}
+
+JsonObject APIClient::storeMeasurement (measurement_t measurement)
+{
+	try {
+		return this->storeMeasurement(
+			measurement.value, 
+			measurement.measured_at, 
+			measurement.measurement_type_id
+		);
+	}
+	catch (DynamicJsonDocument e) {
+		throw e;
+	}
+	catch (String &e) {
+		throw e;
+	}
+	catch (const std::exception &e) {
+		throw e;
+	}
 }
