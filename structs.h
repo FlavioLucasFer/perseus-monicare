@@ -1,3 +1,6 @@
+#ifndef __perseus_monicare_structs__h_
+#define __perseus_monicare_structs__h_
+
 enum class device_state_t
 {
 	stand_by,
@@ -19,3 +22,5 @@ struct sensor_port_t
 	const uint8_t port;
 	float value;
 };
+
+#endif
