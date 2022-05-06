@@ -1,10 +1,10 @@
-#ifndef __perseus_monicare_timerwd__h_
-#define __perseus_monicare_timerwd__h_
+#ifndef __TIMERWD__
+#define __TIMERWD__
 
-#include "Arduino.h"
-#include "inttypes.h"
-#include "iostream"
-#include "vector"
+#include <Arduino.h>
+#include <inttypes.h>
+#include <iostream>
+#include <vector>
 
 /*
 Class to control time without using Arduino's delay function.
