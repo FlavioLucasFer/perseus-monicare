@@ -179,7 +179,9 @@ static void panic () {
 			break;
 	}
 
-	PRINT_L(panic_message.c_str());
+	DPRINT_L(panic_message.c_str());
+
+	delay(10000);
 }
 
 void setup () 
@@ -202,7 +204,7 @@ void loop ()
 			break;
 
 		case CONNECTING_TO_WIFI_DS:
-			connect_to_network(ssid, password);
+			connect_to_network(SSID, NETWORK_PASSWORD);
 			break;
 
 		case LOGGING_IN_DS:
