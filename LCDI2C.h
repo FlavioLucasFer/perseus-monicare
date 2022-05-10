@@ -1,9 +1,9 @@
-#ifndef __perseus_monicare_lcdi2c__h_
-#define __perseus_monicare_lcdi2c__h_
+#ifndef __LCDI2C__
+#define __LCDI2C__
 
-#include "Arduino.h"
-#include "LiquidCrystal_I2C.h"
-#include "inttypes.h"
+#include <Arduino.h>
+#include <inttypes.h>
+#include <LiquidCrystal_I2C.h>
 #include "TimerWD.h"
 
 /*
