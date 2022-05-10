@@ -32,8 +32,8 @@ DynamicJsonDocument api_client_t::get_request (json_capacity_t capacity, String 
 {
 	DynamicJsonDocument doc(capacity);
 
-	this->http_request(route, [&] (HTTPClient http) {
-		uint16_t responseCode = http.GET();
+	this->http_request(route, [&] (HTTPClient& http) {
+		uint16_t response_code = http.GET();
 		String payload = http.getString();
 		remove_utf8_bom_from_json_str(payload);
 		deserializeJson(doc, payload);
@@ -54,11 +54,24 @@ DynamicJsonDocument api_client_t::post_request (json_capacity_t capacity, String
 {
 	DynamicJsonDocument doc(capacity);
 
-	this->http_request(route, [&] (HTTPClient http) {
-		uint16_t responseCode = http.POST(body);
+	this->http_request(route, [&] (HTTPClient& http) {
+		DPRINTLN_L("[POST REQUEST]");
+		DPRINT_L("Capacity: ");
+		DPRINTLN(capacity);
+		DPRINT_L("Route: ");
+		DPRINTLN(route);
+		DPRINT_L("Body: ");
+		DPRINTLN(body);
+
+		uint16_t response_code = http.POST(body);
 		String payload = http.getString();
 		remove_utf8_bom_from_json_str(payload);
+
+		DPRINT_L("Payload: ");
+		DPRINTLN(payload);
+
 		deserializeJson(doc, payload);
+		DPRINTLN_L("Deserialization: SUCCESS");
 	});
 
 	return doc;
@@ -94,6 +107,7 @@ uint32_t api_client_t::login (String username, String password)
 
 	JsonObject responseData = responseDoc["data"];
 	this->auth.set_token(responseData["accessToken"].as<String>());
+	this->auth.set_expires_in(responseData["expiresIn"].as<uint32_t>());
 
 	auto loggedPatient = this->get_logged_patient();
 	JsonObject user = loggedPatient["user"];
@@ -108,7 +122,7 @@ uint32_t api_client_t::login (String username, String password)
 	);
 	PRINTLN_L("here6");
 
-	return responseDoc["data"]["expiresIn"];
+	return responseData["expiresIn"];
 }
 
 uint32_t api_client_t::login (user_t user)

@@ -1,6 +1,7 @@
 #ifndef __PERSEUS_MONICARE_API_CLIENT__
 #define __PERSEUS_MONICARE_API_CLIENT__
 
+#include <functional>
 #include <string>
 #include <inttypes.h>
 #include <Arduino.h>
@@ -115,7 +116,7 @@ public:
 
 	inline bool is_logged()
 	{
-		return !is_expired() && this->id;
+		return !is_expired() && this->token;
 	}
 };
 
@@ -137,8 +138,8 @@ class api_client_t
 		JsonObject get_logged_patient ();
 	
 	private:
-		template<typename T>
-		void http_request(String route, T&& request)
+		template<typename Fn>
+		void http_request(String route, Fn request)
 		{
 			WiFiClient client;
 			HTTPClient http;
@@ -150,7 +151,7 @@ class api_client_t
 			if (this->auth.get_token())
 				http.addHeader("Authorization", "Bearer" + this->auth.get_token());
 
-			request(&http);
+			request(http);
 
 			http.end();
 		}
