@@ -158,7 +158,7 @@ JsonArray api_client_t::get_measurement_types ()
 		return this->get_request(1024, MEASUREMENT_TYPES_ROUTE)["data"];
 }
 
-JsonObject api_client_t::store_measurement (float value, String measured_at, id_t measurement_type_id)
+JsonObject api_client_t::store_measurement (measurement_value_t value, String measured_at, id_t measurement_type_id)
 {
 	if (this->auth.is_logged()) {
 		StaticJsonDocument<128> doc;

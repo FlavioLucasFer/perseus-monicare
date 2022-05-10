@@ -14,6 +14,7 @@ using json_capacity_t = uint16_t;
 using server_ip_t = String;
 using server_port_t = uint16_t;
 using id_t = uint64_t;
+using measurement_value_t = double;
 
 enum class http_protocol_t 
 {
@@ -73,18 +74,18 @@ struct patient_t
 
 struct measurement_t 
 {
-	float value;
+	measurement_value_t value;
 	String measured_at;
 	id_t measurement_type_id;
 
 	measurement_t () {}
-	measurement_t (float value, id_t measurement_type_id)
+	measurement_t (measurement_value_t value, id_t measurement_type_id)
 	{
 		this->value = value;
 		this->measurement_type_id = measurement_type_id;
 	}
 
-	measurement_t (float value, String measured_at, id_t measurement_type_id)
+	measurement_t (measurement_value_t value, String measured_at, id_t measurement_type_id)
 	{
 		this->value = value;
 		this->measured_at = measured_at;
@@ -189,7 +190,7 @@ class api_client_t
 		uint32_t refresh_token ();
 		JsonArray get_measurement_types ();
 		JsonObject store_measurement (measurement_t measurement);
-		JsonObject store_measurement (float value, String measured_at, id_t measurement_type_id);
+		JsonObject store_measurement (measurement_value_t value, String measured_at, id_t measurement_type_id);
 
 	public:
 		inline String get_server_addr ()
