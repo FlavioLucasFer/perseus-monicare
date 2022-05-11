@@ -34,4 +34,4 @@ const char* ssid = "FLAVIO";
 const char* password = "jogadordelol";
 
 // API
-api_client_t api_client("192.168.1.6", 8000);
+api_client_t api_client(SERVER_IP, SERVER_PORT);

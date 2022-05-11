@@ -9,6 +9,7 @@
 #include <Keypad.h>
 #include <WiFi.h>
 #include "lib.h"
+#include "env.h"
 #include "api_client.h"
 #include "LCDI2C.h"
 
@@ -84,8 +85,6 @@ extern bool standby_indicator_led_state;
 
 // WiFi Connection
 extern WiFiClient wifi; 
-extern const char *ssid;
-extern const char *password;
 
 // API
 extern api_client_t api_client;
