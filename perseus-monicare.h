@@ -45,6 +45,10 @@ enum class panic_state_t
 #define I2C_DEVICES_NOT_FOUND panic_state_t::i2c_devices_not_found
 };
 
+#define NTP_SERVER "pool.ntp.org"
+#define GMT_OFFSET_SEC -4 * 60 * 60
+#define DAYLIGHT_OFFSET_SEC 3600
+
 extern device_state_t device_state;
 extern panic_state_t panic_state;
 extern uint64_t last_user_interaction;

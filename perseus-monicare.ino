@@ -102,6 +102,8 @@ static void connect_to_network(const char *ssid, const char *password)
 		}
 	#endif
 
+	configTime(GMT_OFFSET_SEC, DAYLIGHT_OFFSET_SEC, NTP_SERVER);
+
 	DPRINT_L("Local IP: ");
 	DPRINTLN(WiFi.localIP());
 	DPRINT_L("Mac address: ");
@@ -212,6 +214,17 @@ static void alarm ()
 	// to take your measurements
 }
 
+static String get_timestamp ()
+{
+	tm timeinfo;
+	if (!getLocalTime(&timeinfo)) {
+		return "Failed to obtain timestamp";
+	}
+	char time_str_buffer[50];
+	strftime(time_str_buffer, sizeof(time_str_buffer), "%Y-%m-%d %H:%M:%S", &timeinfo);
+	return time_str_buffer;
+}
+
 static void get_body_temperature ()
 {
 	uint32_t previous_millis = millis();
@@ -228,7 +241,7 @@ static void get_body_temperature ()
 	}
 
 	measurement.value += 2;
-	measurement.measured_at = "2022-05-10 09:05:09";
+	measurement.measured_at = get_timestamp();
 	measurement.measurement_type_id = BODY_TEMPERATURE_MTID;
 
 	DS18B20.value = measurement.value;
@@ -301,6 +314,9 @@ void setup ()
 	lcd.backlight();
 	Wire.begin();
 	dallas_DS18B20.begin();
+
+	connect_to_network(SSID, NETWORK_PASSWORD);
+
 	look_for_DS18B20_sensors(dallas_DS18B20, DS18B20_addr);
 	look_for_I2C_devices();
 }
