@@ -19,19 +19,20 @@ char keypad_keys[KEYPAD_ROWS][KEYPAD_COLS] = {
     {'*', '0', '#', 'D'},
 };
 
-Keypad keypad = Keypad(makeKeymap(keypad_keys), KEYPAD_ROW_PINS, KEYPAD_COL_PINS, KEYPAD_ROWS, KEYPAD_COLS);
+byte keypad_row_pins[KEYPAD_ROWS] = { 12, 18, 5, 17 };
+byte keypad_col_pins[KEYPAD_COLS] = { 16, 4, 15, 13 };
+
+Keypad keypad = Keypad(makeKeymap(keypad_keys), keypad_row_pins, keypad_col_pins, KEYPAD_ROWS, KEYPAD_COLS);
 
 // LCD
 bool lcd_is_on = true;
-LCDI2C lcd(LCD_ADR, LCD_COLS, LCD_ROWS);
+LiquidCrystal_I2C lcd(LCD_ADDR, LCD_COLS, LCD_ROWS);
 
 // standby
 bool standby_indicator_led_state = false;
 
 // WiFi Connection
 WiFiClient wifi_client;
-const char* ssid = "FLAVIO";
-const char* password = "jogadordelol";
 
 // API
 api_client_t api_client(SERVER_IP, SERVER_PORT);

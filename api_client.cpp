@@ -113,6 +113,7 @@ uint32_t api_client_t::login (String username, String password)
 	JsonObject user = loggedPatient["user"];
 
 	this->auth.set_id(loggedPatient["id"].as<id_t>());
+	this->auth.set_str_id(loggedPatient["id"].as<String>());
 
 	this->patient = patient_t(
 		this->auth.get_id(),
@@ -160,7 +161,9 @@ JsonArray api_client_t::get_measurement_types ()
 
 JsonObject api_client_t::store_measurement (measurement_value_t value, String measured_at, id_t measurement_type_id)
 {
+	DPRINTLN_L("[STORE MEASUREMENT]");
 	if (this->auth.is_logged()) {
+		DPRINTLN_L("Logged");
 		StaticJsonDocument<128> doc;
 
 		doc["value"] = value;
@@ -169,9 +172,14 @@ JsonObject api_client_t::store_measurement (measurement_value_t value, String me
 
 		String body;
 
+		DPRINT_L("Body:");
 		serializeJson(doc, body);
+		DPRINTLN_L(body.c_str());
 
-		auto route = this->get_server_addr() + this->stringify_route(PATIENT_MEASUREMENT_ROUTE) + "/" + (const char*) this->auth.get_id();
+		// String r = this->stringify_route(PATIENT_MEASUREMENT_ROUTE);
+		String route = this->get_server_addr() + this->stringify_route(PATIENT_MEASUREMENT_ROUTE) + "/" + this->auth.get_str_id();
+		DPRINT_L("Route: ");
+		DPRINTLN_L(route.c_str());
 		auto responseDoc = this->post_request(768, route, body);
 
 		return responseDoc["data"];
