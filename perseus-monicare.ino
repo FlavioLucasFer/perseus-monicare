@@ -1,11 +1,17 @@
 #include "perseus-monicare.h"
 
-static void lcd_clear_line(uint8_t line)
+static void lcd_clear_row (uint8_t row)
 {
 	for (uint8_t n = 0; n < LCD_COLS; n++) {
-		lcd.setCursor(n, line);
+		lcd.setCursor(n, row);
 		lcd.print(" ");
 	}
+}
+
+static void lcd_clear_column (uint8_t col, uint8_t row)
+{
+	lcd.setCursor(col, row);
+	lcd.print(" ");
 }
 
 static void look_for_I2C_devices ()
@@ -112,7 +118,7 @@ static void connect_to_network(const char *ssid, const char *password)
 	DPRINTLN_L("You're connected to the WiFi network\n");
 
 	delay(2000);
-	lcd_clear_line(2);
+	lcd_clear_row(2);
 	lcd_print("Connectado a rede", 0, 2);
 	lcd_print(ssid, 0, 3);
 	delay(3000);
@@ -132,7 +138,7 @@ static void stand_by ()
 	// alarm();
 }
 
-static void wait_login_input(String& var)
+static void line_input(String& var)
 {
 	while (true) {
 		char key = keypad.getKey();
@@ -145,19 +151,19 @@ static void wait_login_input(String& var)
 				break;
 			else if (key == '*') {
 				var.remove(var.length() - 1);
+				lcd_clear_column(var.length(), 3);
 			}
-			else
+			else {
 				var += key;
+				lcd_print(var, 0, 3);
+			}
 
 			PRINT_L("VAR: ");
 			PRINTLN(var);
-
-			lcd_print(var, 0, 3);
 		}
 	}
 }
 
-// TODO
 static void login ()
 {
 	lcd_print("Monicare - Login", 2);
@@ -167,44 +173,65 @@ static void login ()
 	
 	DPRINTLN_L("Username: ");
 	lcd_print("Usuario:", 0, 2);
-	wait_login_input(username);
+	line_input(username);
 
-	lcd_clear_line(2);
-	lcd_clear_line(3);
+	lcd_clear_row(2);
+	lcd_clear_row(3);
 	lcd_print("Senha:", 0, 2);
 	DPRINTLN_L("Password: ");
-	wait_login_input(password);
+	line_input(password);
 
 	DPRINT_L("\n[USERNAME]: ");
 	DPRINTLN(username);
 	DPRINT_L("[PASSWORD]: ");
 	DPRINTLN(password);
 
-	lcd_clear_line(2);
-	lcd_clear_line(3);
+	lcd_clear_row(2);
+	lcd_clear_row(3);
 	lcd_print("Efetuando login...", 0, 2);
 
 	api_client.login(username, password);
 	DPRINTLN_L("SUCCESSFULLY LOGGED IN");
 
-	lcd_clear_line(2);
+	lcd_clear_row(2);
 	lcd_print("Login efetuado", 3, 2);
 	lcd_print("com sucesso!", 4, 3);
 	delay(2000);
 
-	lcd_clear_line(2);
-	lcd_clear_line(3);
+	lcd_clear_row(2);
+	lcd_clear_row(3);
 	lcd_print("Entrando...", 4, 2);
 	delay(3000);
 
 	lcd.clear();
-	device_state = GETTING_BODY_TEMPERATURE_DS;
+	device_state = SHOWING_MENU_DS;
 }
 
-// TODO
 static void menu ()
 {
-	// function to show application menu
+	while (device_state == SHOWING_MENU_DS) {
+		lcd_print("Monicare - Menu", 3);
+		lcd_print("1) Medir temp. corp.", 0, 1);
+		lcd_print("2) Medir freq. cardi", 0, 2);
+		lcd_print("aca e oxi. sanguinea", 0, 3);
+
+		char menu_choice = keypad.waitForKey();
+
+		switch (menu_choice) {
+			case '1':
+				device_state = GETTING_BODY_TEMPERATURE_DS;
+				break;
+			case '2':
+				device_state = GETTING_BLOOD_OXYGENATION_AND_HEART_RATE_DS;
+				break;
+			default:
+				lcd.clear();
+				lcd_print("Opcao invalida!", 2, 1);
+				break;
+		}
+
+		lcd.clear();
+	}
 }
 
 // TODO
@@ -227,12 +254,40 @@ static String get_timestamp ()
 
 static void get_body_temperature ()
 {
-	uint32_t previous_millis = millis();
 	measurement_t measurement;
+	measurement.measured_at = get_timestamp();
+	measurement.measurement_type_id = BODY_TEMPERATURE_MTID;
+
+	lcd_print("Por favor, coloque o");
+	lcd_print("termometro embaixo", 1, 1);
+	lcd_print("do braco...", 4, 2);
+
+	float initial_temp;
+	float control_temp;
+	DPRINTLN_L("Waiting for the user to place the thermometer under the arm");
+	uint8_t stab_count = 5;
+	do {
+		dallas_DS18B20.requestTemperatures();
+		control_temp = dallas_DS18B20.getTempC(DS18B20_addr);
+
+		if (stab_count > 0) {
+			initial_temp = control_temp;
+			DPRINT_L("Inicial temperature: ");
+			DPRINTLN(initial_temp);
+			stab_count--;
+		} 
+
+		DPRINTLN(control_temp);
+	} while ((control_temp - initial_temp) < 0.5);
+
+	lcd.clear();
+	lcd_print("Coletando temperatu-");
+	lcd_print("ra corporal", 0, 1);
+	lcd_print("AGUARDE...", 5, 3);
 
 	DPRINTLN_L("Getting DS18B20's celsius temperature");
-
-	while (millis() - previous_millis < 120000) {
+	uint32_t previous_millis = millis();
+	while (millis() - previous_millis < DS18B20_STAB_TIME) {
 		dallas_DS18B20.requestTemperatures();
 		measurement.value = dallas_DS18B20.getTempC(DS18B20_addr);
 		DPRINTLN(measurement.value);
@@ -241,17 +296,26 @@ static void get_body_temperature ()
 	}
 
 	measurement.value += 2;
-	measurement.measured_at = get_timestamp();
-	measurement.measurement_type_id = BODY_TEMPERATURE_MTID;
-
 	DS18B20.value = measurement.value;
+
+	lcd.clear();
+	lcd_print("Temperatura corporal");
+	lcd_print(ceil(measurement.value * 100) / 100, 7, 1);
+	lcd_print(DEGREE_SYMBOL, 12, 1);
+	lcd_print("Salvando...", 4, 3);
 
 	DPRINTLN_L("\nTemp C: ");
 	DPRINTLN(measurement.value);
+
+	delay(5000);
  
 	api_client.store_measurement(measurement);
 
 	DPRINTLN_L("BODY TEMPERATURE SUCCESSFULLY REGISTERED");
+	
+	delay(3000);
+	lcd.clear();
+	device_state = SHOWING_MENU_DS;
 }
 
 // TODO
@@ -314,8 +378,6 @@ void setup ()
 	lcd.backlight();
 	Wire.begin();
 	dallas_DS18B20.begin();
-
-	connect_to_network(SSID, NETWORK_PASSWORD);
 
 	look_for_DS18B20_sensors(dallas_DS18B20, DS18B20_addr);
 	look_for_I2C_devices();

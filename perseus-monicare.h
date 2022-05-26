@@ -55,6 +55,7 @@ extern uint64_t last_user_interaction;
 
 // Sensors
   // DS18B20
+#define DS18B20_STAB_TIME 120000
 extern OneWire one_wire_DS18B20;
 extern DallasTemperature dallas_DS18B20;
 extern sensor_port_t DS18B20;
@@ -82,7 +83,7 @@ void lcd_print (T message, uint8_t col = 0, uint8_t row = 0)
 }
 
 // LCD symbols
-#define DEGREE_SYMBOL 0xDF
+#define DEGREE_SYMBOL (char)223
 extern const uint8_t clock_symbol[8];
 extern const uint8_t heart_symbol[8];
 // standby
