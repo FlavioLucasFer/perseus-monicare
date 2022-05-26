@@ -2,57 +2,52 @@
 #define __PERSEUS_MONICARE__
 
 // Headers
+#include <LiquidCrystal_I2C.h>
 #include <DallasTemperature.h>
 #include <ArduinoJson.h>
 #include <inttypes.h>
 #include <OneWire.h>
 #include <Keypad.h>
 #include <WiFi.h>
+#include <Wire.h>
+#include <time.h>
 #include "lib.h"
 #include "env.h"
 #include "api_client.h"
-#include "LCDI2C.h"
 
 enum class device_state_t
 {
-	STAND_BY,
-	CONNECTING_TO_WIFI,
-	LOGGING_IN,
-	SHOWING_MENU,
-	GETTING_BODY_TEMPERATURE,
-	GETTING_BLOOD_OXYGENATION_AND_HEART_RATE,
-	PANIC_DS,
+	stand_by,
+	connecting_to_wifi,
+	logging_in,
+	showing_menu,
+	getting_body_temperature,
+	getting_blood_oxygenation_and_heart_rate,
+	panic,
 
-#define STAND_BY_DS device_state_t::STAND_BY
-#define CONNECTING_TO_WIFI_DS device_state_t::CONNECTING_TO_WIFI
-#define LOGGING_IN_DS device_state_t::LOGGING_IN
-#define SHOWING_MENU_DS device_state_t::SHOWING_MENU
-#define GETTING_BODY_TEMPERATURE_DS device_state_t::GETTING_BODY_TEMPERATURE
-#define GETTING_BLOOD_OXYGENATION_AND_HEART_RATE_DS device_state_t::GETTING_BLOOD_OXYGENATION_AND_HEART_RATE
-#define PANIC_DS device_state_t::PANIC_DS
+#define STAND_BY_DS device_state_t::stand_by
+#define CONNECTING_TO_WIFI_DS device_state_t::connecting_to_wifi
+#define LOGGING_IN_DS device_state_t::logging_in
+#define SHOWING_MENU_DS device_state_t::showing_menu
+#define GETTING_BODY_TEMPERATURE_DS device_state_t::getting_body_temperature
+#define GETTING_BLOOD_OXYGENATION_AND_HEART_RATE_DS device_state_t::getting_blood_oxygenation_and_heart_rate
+#define PANIC_DS device_state_t::panic
 };
 
 enum class panic_state_t
 {
-	DS18B20_NOT_FOUND,
-	GYMAX30102_NOT_FOUND,
+	ds18b20_not_found,
+	gymax30102_not_found,
+	i2c_devices_not_found,
 
-#define DS18B20_NOT_FOUND panic_state_t::DS18B20_NOT_FOUND
-#define GYMAX30102_NOT_FOUND panic_state_t::GYMAX30102_NOT_FOUND
+#define DS18B20_NOT_FOUND panic_state_t::ds18b20_not_found
+#define GYMAX30102_NOT_FOUND panic_state_t::gymax30102_not_found
+#define I2C_DEVICES_NOT_FOUND panic_state_t::i2c_devices_not_found
 };
 
-#define KEYPAD_ROWS 4
-#define KEYPAD_COLS 4
-#define KEYPAD_ROW_PINS (byte[]) { 19, 18, 5, 17 }
-#define KEYPAD_COL_PINS (byte[]) { 16, 4, 12, 15 }
-
-#define DEGREE_SYMBOL 0xDF
-#define CLOCK_SYMBOL (uint8_t[]) { 0x0, 0xe, 0x15, 0x17, 0x11, 0xe, 0x0 }
-#define HEART_SYMBOL (uint8_t[]) { 0x0, 0xa, 0x1f, 0x1f, 0xe, 0x4, 0x0 }
-
-#define LCD_ADR 0x27
-#define LCD_COLS 20
-#define LCD_ROWS 4
+#define NTP_SERVER "pool.ntp.org"
+#define GMT_OFFSET_SEC -4 * 60 * 60
+#define DAYLIGHT_OFFSET_SEC 3600
 
 extern device_state_t device_state;
 extern panic_state_t panic_state;
@@ -66,20 +61,30 @@ extern sensor_port_t DS18B20;
 extern DeviceAddress DS18B20_addr;
 
 // Keypad
+#define KEYPAD_ROWS 4
+#define KEYPAD_COLS 4
 extern Keypad keypad;
+extern byte keypad_row_pins[KEYPAD_ROWS];
+extern byte keypad_col_pins[KEYPAD_COLS];
 
 // LCD
+#define LCD_ADDR 0x27
+#define LCD_COLS 20
+#define LCD_ROWS 4
 extern bool lcd_is_on;
-extern const byte lcd_add;
-extern const uint8_t lcd_column;
-extern const uint8_t lcd_row;
-extern LCDI2C lcd;
+extern LiquidCrystal_I2C lcd;
+
+template <typename T>
+void lcd_print (T message, uint8_t col = 0, uint8_t row = 0)
+{
+	lcd.setCursor(col, row);
+	lcd.print(message);
+}
 
 // LCD symbols
-extern const byte degree_symbol;
+#define DEGREE_SYMBOL 0xDF
 extern const uint8_t clock_symbol[8];
 extern const uint8_t heart_symbol[8];
-
 // standby
 extern bool standby_indicator_led_state;
 

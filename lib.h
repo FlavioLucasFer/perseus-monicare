@@ -50,7 +50,7 @@
 #define PRINTLN(...) Serial.println(__VA_ARGS__)
 #define PRINTLN_L(s) Serial.println(F(s)) // nacro for literal strings
 
-#define DEBUG 1
+#define DEBUG 0
 
 #if DEBUG
     #define DPRINT(...) PRINT(__VA_ARGS__)

@@ -96,6 +96,7 @@ struct measurement_t
 class auth_t
 {
 	OO_ENCAPSULATE(id_t, id);
+	OO_ENCAPSULATE(String, str_id);
 	OO_ENCAPSULATE(String, token);
 	OO_ENCAPSULATE_RO(uint64_t, logged_at);
 	OO_ENCAPSULATE_RO(uint32_t, expires_in);
