@@ -321,8 +321,162 @@ static void get_body_temperature ()
 // TODO
 static void get_blood_oxygenation_and_heart_rate ()
 {
-	// function to get user's blood oxygenation
-	// and save it in the database
+	measurement_t spo2_measurement;
+	spo2_measurement.measured_at = get_timestamp();
+	spo2_measurement.measurement_type_id = BLOOD_OXYGENATION_MTID;
+	
+	measurement_t heart_rate_measurement;
+	heart_rate_measurement.measured_at = get_timestamp();
+	heart_rate_measurement.measurement_type_id = HEART_RATE_MTID;
+
+	lcd.clear();
+	lcd_print("Por favor, coloque o");
+	lcd_print("dedo sob o LED.", 0, 1);
+
+	while (oximeter.getIR() < 5000);
+
+	lcd.clear();
+	lcd_print("Coletando dados", 2);
+	lcd_print("AGUARDE...", 5, 3);
+
+	for (byte i = 0; i < OXI_BUFFER_LENGTH; i++) {
+		while (!oximeter.available())
+			oximeter.check();
+
+		red_buffer[i] = oximeter.getIR();
+		ir_buffer[i] = oximeter.getRed();
+		oximeter.nextSample();
+
+		DPRINT_L("red: ");
+		DPRINT(red_buffer[i], DEC);
+		DPRINT_L("\t ir: ");
+		DPRINT(ir_buffer[i], DEC);
+	}
+
+	maxim_heart_rate_and_oxygen_saturation(
+		ir_buffer, 
+		OXI_BUFFER_LENGTH, 
+		red_buffer, 
+		&spo2, 
+		&valid_spo2, 
+		&heart_rate, 
+		&valid_heart_rate
+	);
+
+	lcd_print("BPM = ", 0, 1);
+	lcd_print("SPO2 = ", 0, 2);
+
+	uint64_t previous_millis = millis();
+
+	while ((millis() - previous_millis) < OXI_STAB_TIME) {
+		for (byte i = 25; i < 100; i++) {
+			red_buffer[i - 25] = red_buffer[i];
+			ir_buffer[i - 25] = ir_buffer[i];
+		}
+
+		for (byte i = 75; i < 100; i++) {
+			while (!oximeter.available())
+				oximeter.check();
+
+			red_buffer[i] = oximeter.getRed();
+			ir_buffer[i] = oximeter.getIR();
+			oximeter.nextSample();
+			
+			DPRINT_L("red: ");
+			DPRINT(red_buffer[i], DEC);
+			DPRINT_L("\t ir: ");
+			DPRINT(ir_buffer[i], DEC);
+
+			DPRINT_L("\t HR=");
+			DPRINT(heart_rate, DEC);
+			DPRINT_L("\t AVG=");
+			DPRINT(beat_avg, DEC);
+			DPRINT_L("\t valid=");
+			DPRINT(valid_heart_rate, DEC);
+
+			DPRINT_L("\t SPO2=");
+			DPRINT(spo2, DEC);
+			DPRINT_L("\t AVG=");
+			DPRINT(spo2_avg, DEC);
+			DPRINT_L("\t valid=");
+			DPRINT(valid_spo2, DEC);
+
+			long ir_value = ir_buffer[i];
+
+			if (checkForBeat(ir_value)) {
+				long delta = millis() - last_beat;
+				last_beat = millis();
+
+				beats_per_minute = 60 / (delta / 1000.0);
+				beat_avg = (beat_avg + beats_per_minute) / 2;
+			}
+			if (millis() - last_beat > 10000) {
+				beats_per_minute = 0;
+				beat_avg = (beat_avg + beats_per_minute) / 2;
+			}
+		}
+
+		maxim_heart_rate_and_oxygen_saturation(
+			ir_buffer,
+			OXI_BUFFER_LENGTH,
+			red_buffer,
+			&spo2,
+			&valid_spo2,
+			&heart_rate,
+			&valid_heart_rate
+		);
+
+		DPRINT_L("\t HR=");
+		DPRINT(heart_rate, DEC);
+		DPRINT_L("\t AVG=");
+		DPRINT(beat_avg, DEC);
+		DPRINT_L("\t valid=");
+		DPRINT(valid_heart_rate, DEC);
+
+		DPRINT_L("\t SPO2=");
+		DPRINT(spo2, DEC);
+		DPRINT_L("\t AVG=");
+		DPRINT(spo2_avg, DEC);
+		DPRINT_L("\t valid=");
+		DPRINT(valid_spo2, DEC);
+
+		if (valid_spo2 == 1 && spo2 < 100 && spo2 > 0)
+			spo2_avg = (spo2_avg + spo2) / 2;
+		else {
+			spo2 = 0;
+			spo2_avg = (spo2_avg + spo2) / 2;
+		}
+
+		lcd_print(beat_avg, 8, 1);
+		lcd_print(spo2_avg, 9, 2);
+	}
+
+	lcd.clear();
+	lcd_print("Dados coletados!", 3);
+	lcd_print("BPM = ", 0, 1);
+	lcd_print("SPO2 = ", 0, 2);
+	lcd_print(beat_avg, 8, 1);
+	lcd_print(spo2_avg, 9, 2);
+	lcd_print("Salvando...", 4, 3);
+
+	DPRINTLN_L("\nBPM AVG: ");
+	DPRINTLN(beat_avg);
+	DPRINTLN_L("\nSPO2 AVG: ");
+	DPRINTLN(spo2_avg);
+
+	delay(5000);
+
+	heart_rate_measurement.value = beat_avg;
+	spo2_measurement.value = spo2_avg;
+
+	api_client.store_measurement(heart_rate_measurement);
+	api_client.store_measurement(spo2_measurement);
+
+	DPRINTLN_L("HEART RATE AND SPO2 SUCCESSFULLY REGISTERED");
+
+	delay(3000);
+	lcd.clear();
+	device_state = SHOWING_MENU_DS;
 }
 
 static void set_panic (panic_state_t panic)
@@ -338,11 +492,11 @@ static void panic ()
 
 	switch (panic_state) {
 		case DS18B20_NOT_FOUND:
-			message = "DS18B20 SENSOR NOT FOUND";
+			message = "DS18B20 (TEMPERATURE SENSOR) SENSOR NOT FOUND";
 			break;
 		
 		case GYMAX30102_NOT_FOUND:
-			message = "GY-MAX30102 SENSOR NOT FOUND";
+			message = "GY-MAX30102 (PULSE OXIMETER) SENSOR NOT FOUND";
 			break;
 		
 		case I2C_DEVICES_NOT_FOUND:
@@ -374,8 +528,24 @@ void setup ()
 		while (!Serial);
 	#endif
 
+	DPRINTLN_L("Initializing Pulse Oximeter...");
+	if (!oximeter.begin(Wire, I2C_SPEED_FAST))
+		set_panic(GYMAX30102_NOT_FOUND);
+
+	oximeter.setup(
+		OXI_LED_BRIGHTNESS, 
+		OXI_SAMPLE_AVERAGE, 
+		OXI_LED_MODE, 
+		OXI_SAMPLE_RATE, 
+		OXI_PULSE_WIDTH, 
+		OXI_ADC_RANGE
+	);
+
+	DPRINTLN_L("Initializing LCD Display...");
 	lcd.init();
 	lcd.backlight();
+
+	DPRINTLN_L("Initializing DS18B20 (temperature sensor)...");
 	Wire.begin();
 	dallas_DS18B20.begin();
 
