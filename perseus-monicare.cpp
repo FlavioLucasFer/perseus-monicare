@@ -5,11 +5,24 @@ device_state_t device_state = CONNECTING_TO_WIFI_DS;
 panic_state_t panic_state;
 uint64_t last_user_interaction = 0;
 
-// Sensors
+// DS18B20
 sensor_port_t DS18B20 = { 27, 0 };
 OneWire one_wire_DS18B20(DS18B20.port);
 DallasTemperature dallas_DS18B20(&one_wire_DS18B20);
 DeviceAddress DS18B20_addr;
+
+// Oximeter
+MAX30105 oximeter;
+uint32_t ir_buffer[OXI_BUFFER_LENGTH];
+uint32_t red_buffer[OXI_BUFFER_LENGTH];
+int32_t spo2;
+int8_t valid_spo2;
+int32_t heart_rate;
+int8_t valid_heart_rate;
+long last_beat = 0;
+double beats_per_minute;
+int beat_avg = 0;
+int spo2_avg = 0;
 
 // Matrix Keypad
 char keypad_keys[KEYPAD_ROWS][KEYPAD_COLS] = {
